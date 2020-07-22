@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\NetToolBox.HashAuthentication.AuthenticationHandler\NetToolBox.HashAuthentication.AuthenticationHandler.csproj" />
     <ProjectReference Include="..\..\src\NetToolBox.HashAuthentication\NetToolBox.HashAuthentication.csproj" />
   </ItemGroup>
 
