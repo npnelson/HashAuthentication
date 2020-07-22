@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace NetToolBox.HashAuthentication
 {
@@ -11,7 +12,7 @@ namespace NetToolBox.HashAuthentication
     {
         private readonly IDateTimeService _dateTimeService;
         private readonly IOptionsMonitor<List<HashKeyEntry>> _haskKeyOptionsMonitor;
-        private RNGCryptoServiceProvider _rand = new RNGCryptoServiceProvider();
+        private readonly RNGCryptoServiceProvider _rand = new RNGCryptoServiceProvider();
 
         public HashCalculator(IDateTimeService dateTimeService, IOptionsMonitor<List<HashKeyEntry>> haskKeyOptionsMonitor)
         {
@@ -22,16 +23,26 @@ namespace NetToolBox.HashAuthentication
 
         public Uri CalculateUriWithHash(Uri uri, TimeSpan expiration)
         {
-            return uri;
+            var uriToHash = CalculateUriToHash(uri, expiration);
+            var hashCode = CalculateHashCodeForUri(uriToHash.Uri, uriToHash.HashKeyEntry);
+            var retval = new Uri(Uri.EscapeUriString($"{uriToHash.Uri}&hashCode={hashCode}"));
+            return retval;
         }
 
-        internal Uri CalculateUriToHash(Uri uri, TimeSpan expiration)
+        internal string CalculateHashCodeForUri(Uri uri, HashKeyEntry hashKeyEntry)
+        {
+            var sha1 = new HMACSHA1(Encoding.UTF8.GetBytes(hashKeyEntry.KeyValue));
+            var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(uri.ToString()));
+            var encoded = Convert.ToBase64String(hash);
+            return encoded;
+        }
+        internal (Uri Uri, HashKeyEntry HashKeyEntry) CalculateUriToHash(Uri uri, TimeSpan expiration)
         {
             var activeItems = _haskKeyOptionsMonitor.CurrentValue.Where(x => x.IsActive).ToList();
             var randomIndex = RandomInteger(0, activeItems.Count - 1);
             var keyToUse = activeItems[randomIndex];
 
-            var retval = new Uri(uri.ToString() + $"&expirationTime={_dateTimeService.CurrentDateTimeUTC.AddHours(5):yyyyMMddHHmmss}&hashKeyName={keyToUse.KeyName}");
+            var retval = (new Uri(uri.ToString() + $"&expirationTime={_dateTimeService.CurrentDateTimeUTC.Add(expiration):yyyyMMddHHmmss}&hashKeyName={keyToUse.KeyName}"), keyToUse);
             return retval;
         }
         //http://csharphelper.com/blog/2014/08/use-a-cryptographic-random-number-generator-in-c/
