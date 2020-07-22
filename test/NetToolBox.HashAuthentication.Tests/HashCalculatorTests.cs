@@ -10,6 +10,22 @@ namespace NetToolBox.HashAuthentication.Tests
 {
     public class HashCalculatorTests
     {
+
+
+        [Theory]
+        [InlineData("http://localhost/RetrieveBlob?containerName=testcontainer&path=testpath&expirationTime=20200722173059&hashKeyName=key1&hashCode=PNd18qkQSAmWp5ZVpAnH3tUxSZY=", true)]
+        [InlineData("http://localhost/RetrieveBlob?containerName=testcontainer&path=testpath&expirationTime=20300722173059&hashKeyName=key1&hashCode=PNd18qkQSAmWp5ZVpAnH3tUxSZY=", false)] //changed uri
+        [InlineData("http://localhost/RetrieveBlob?containerName=testcontainer&path=testpath&expirationTime=20300722173059&hashKeyName=key1", false)] //no hashCode, should just return false, not throw
+        //TODO: add a case with a valid uri, but past expired time
+        public void ValidateUriTest(string uriString, bool isValid)
+        {
+            var fixture = new HashCalculatorTestFixture();
+            var currentDateTime = new DateTime(2020, 7, 22, 12, 30, 59, 5);
+            fixture.TestDateTimeServiceProvider.SetCurrentDateTimeUTC(currentDateTime);
+            var uriToValidate = new Uri(uriString);
+            var valid = fixture.HashCalculator.IsValidUri(uriToValidate);
+            valid.Should().Be(isValid);
+        }
         [Fact]
         public void CalculateUriToHashTest()
         {

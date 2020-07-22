@@ -21,17 +21,40 @@ namespace NetToolBox.HashAuthentication
 
         }
 
+        public bool IsValidUri(Uri uri)
+        {
+            //first strip the hashcode
+            var uriString = uri.ToString();
+
+            //find hashCode=
+            var hashCodeIndex = uriString.IndexOf("hashCode=");
+            if (hashCodeIndex <= 0) return false;
+            var hashCodeSent = uriString.Substring(hashCodeIndex + 9);
+            var uriWithoutHashCode = uriString.Substring(0, hashCodeIndex - 1);
+            //find keyName=
+            var keyNameIndex = uriString.IndexOf("hashKeyName=");
+            if (keyNameIndex <= 0) return false;
+            var keyName = uriWithoutHashCode.Substring(keyNameIndex + 12);
+            var keyPassword = _haskKeyOptionsMonitor.CurrentValue.Single(x => x.KeyName == keyName).KeyValue;
+
+            var hashCodeExpected = CalculateHashCodeForUri(new Uri(uriWithoutHashCode), keyPassword);
+
+            return hashCodeSent == hashCodeExpected;
+        }
+
+
+
         public Uri CalculateUriWithHash(Uri uri, TimeSpan expiration)
         {
             var uriToHash = CalculateUriToHash(uri, expiration);
-            var hashCode = CalculateHashCodeForUri(uriToHash.Uri, uriToHash.HashKeyEntry);
+            var hashCode = CalculateHashCodeForUri(uriToHash.Uri, uriToHash.HashKeyEntry.KeyValue);
             var retval = new Uri(Uri.EscapeUriString($"{uriToHash.Uri}&hashCode={hashCode}"));
             return retval;
         }
 
-        internal string CalculateHashCodeForUri(Uri uri, HashKeyEntry hashKeyEntry)
+        internal string CalculateHashCodeForUri(Uri uri, string hashPassword)
         {
-            var sha1 = new HMACSHA1(Encoding.UTF8.GetBytes(hashKeyEntry.KeyValue));
+            var sha1 = new HMACSHA1(Encoding.UTF8.GetBytes(hashPassword));
             var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(uri.ToString()));
             var encoded = Convert.ToBase64String(hash);
             return encoded;
