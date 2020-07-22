@@ -2,6 +2,7 @@
 using NetToolBox.DateTimeService;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -38,6 +39,12 @@ namespace NetToolBox.HashAuthentication
             var keyPassword = _haskKeyOptionsMonitor.CurrentValue.Single(x => x.KeyName == keyName).KeyValue;
 
             var hashCodeExpected = CalculateHashCodeForUri(new Uri(uriWithoutHashCode), keyPassword);
+
+            var currentTime = _dateTimeService.CurrentDateTimeUTC;
+            var expirationTimeIndex = uriWithoutHashCode.IndexOf("expirationTime");
+            if (expirationTimeIndex <= 0) return false;
+            var expirationTime = DateTime.ParseExact(uriWithoutHashCode.Substring(expirationTimeIndex + 15, 14), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            if (expirationTime < currentTime) return false;
 
             return hashCodeSent == hashCodeExpected;
         }
