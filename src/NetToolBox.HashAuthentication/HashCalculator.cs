@@ -13,7 +13,7 @@ namespace NetToolBox.HashAuthentication
     {
         private readonly IDateTimeService _dateTimeService;
         private readonly IOptionsMonitor<List<HashKeyEntry>> _haskKeyOptionsMonitor;
-        private readonly SecureRandom _rand = new SecureRandom();
+
 
         public HashCalculator(IDateTimeService dateTimeService, IOptionsMonitor<List<HashKeyEntry>> haskKeyOptionsMonitor)
         {
@@ -69,7 +69,7 @@ namespace NetToolBox.HashAuthentication
         internal (Uri Uri, HashKeyEntry HashKeyEntry) CalculateUriToHash(Uri uri, TimeSpan expiration)
         {
             var activeItems = _haskKeyOptionsMonitor.CurrentValue.Where(x => x.IsActive).ToList();
-            var randomIndex = _rand.Next(0, activeItems.Count);
+            var randomIndex = RandomNumberGenerator.GetInt32(activeItems.Count); //the upper bound is exclusive, so that's why we go with count instead of count -1
             var keyToUse = activeItems[randomIndex];
             var uriString = uri.ToString();
             var retval = (new Uri(uriString + $"{(uriString.Contains('?') ? '&' : '?')}expirationTime={_dateTimeService.CurrentDateTimeUTC.Add(expiration):yyyyMMddHHmmss}&hashKeyName={keyToUse.KeyName}"), keyToUse);
@@ -77,49 +77,5 @@ namespace NetToolBox.HashAuthentication
         }
 
     }
-    //https://stackoverflow.com/questions/4892588/rngcryptoserviceprovider-random-number-review
-    public class SecureRandom : RandomNumberGenerator
-    {
-        private readonly RandomNumberGenerator rng = new RNGCryptoServiceProvider();
 
-
-        public int Next()
-        {
-            var data = new byte[sizeof(int)];
-            rng.GetBytes(data);
-            return BitConverter.ToInt32(data, 0) & (int.MaxValue - 1);
-        }
-
-        public int Next(int maxValue)
-        {
-            return Next(0, maxValue);
-        }
-
-        public int Next(int minValue, int maxValue)
-        {
-            if (minValue > maxValue)
-            {
-                throw new ArgumentOutOfRangeException();
-            }
-            return (int)Math.Floor((minValue + ((double)maxValue - minValue) * NextDouble()));
-        }
-
-        public double NextDouble()
-        {
-            var data = new byte[sizeof(uint)];
-            rng.GetBytes(data);
-            var randUint = BitConverter.ToUInt32(data, 0);
-            return randUint / (uint.MaxValue + 1.0);
-        }
-
-        public override void GetBytes(byte[] data)
-        {
-            rng.GetBytes(data);
-        }
-
-        public override void GetNonZeroBytes(byte[] data)
-        {
-            rng.GetNonZeroBytes(data);
-        }
-    }
 }
