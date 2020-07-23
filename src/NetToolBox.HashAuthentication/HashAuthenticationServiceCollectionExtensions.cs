@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public static IServiceCollection AddHashKeyAuthentication(this IServiceCollection services)
+        public static IServiceCollection AddHashCode(this IServiceCollection services)
         {
             var optionsRegistered = services.Any(x => x.ServiceType.GenericTypeArguments.Any(x => x == typeof(List<HashKeyEntry>)));
             if (!optionsRegistered) throw new InvalidOperationException("You must register options for of type List<HashKeyEntry for hashkeyauthentication");
@@ -25,10 +25,10 @@ namespace Microsoft.Extensions.DependencyInjection
             return services;
         }
 
-        public static IServiceCollection AddHashKeyAuthentication(this IServiceCollection services, IConfigurationSection configurationSection)
+        public static IServiceCollection AddHashCode(this IServiceCollection services, IConfigurationSection configurationSection)
         {
             services.Configure<List<HashKeyEntry>>(configurationSection);
-            services.AddHashKeyAuthentication();
+            services.AddHashCode();
             return services;
         }
     }

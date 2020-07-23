@@ -13,7 +13,7 @@ namespace NetToolBox.HashAuthentication
     {
         private readonly IDateTimeService _dateTimeService;
         private readonly IOptionsMonitor<List<HashKeyEntry>> _haskKeyOptionsMonitor;
-        private readonly RNGCryptoServiceProvider _rand = new RNGCryptoServiceProvider();
+        private readonly SecureRandom _rand = new SecureRandom();
 
         public HashCalculator(IDateTimeService dateTimeService, IOptionsMonitor<List<HashKeyEntry>> haskKeyOptionsMonitor)
         {
@@ -69,30 +69,57 @@ namespace NetToolBox.HashAuthentication
         internal (Uri Uri, HashKeyEntry HashKeyEntry) CalculateUriToHash(Uri uri, TimeSpan expiration)
         {
             var activeItems = _haskKeyOptionsMonitor.CurrentValue.Where(x => x.IsActive).ToList();
-            var randomIndex = RandomInteger(0, activeItems.Count - 1);
+            var randomIndex = _rand.Next(0, activeItems.Count);
             var keyToUse = activeItems[randomIndex];
-
-            var retval = (new Uri(uri.ToString() + $"&expirationTime={_dateTimeService.CurrentDateTimeUTC.Add(expiration):yyyyMMddHHmmss}&hashKeyName={keyToUse.KeyName}"), keyToUse);
+            var uriString = uri.ToString();
+            var retval = (new Uri(uriString + $"{(uriString.Contains('?') ? '&' : '?')}expirationTime={_dateTimeService.CurrentDateTimeUTC.Add(expiration):yyyyMMddHHmmss}&hashKeyName={keyToUse.KeyName}"), keyToUse);
             return retval;
         }
-        //http://csharphelper.com/blog/2014/08/use-a-cryptographic-random-number-generator-in-c/
-        // Return a random integer between a min and max value.
-        private int RandomInteger(int min, int max)
+
+    }
+    //https://stackoverflow.com/questions/4892588/rngcryptoserviceprovider-random-number-review
+    public class SecureRandom : RandomNumberGenerator
+    {
+        private readonly RandomNumberGenerator rng = new RNGCryptoServiceProvider();
+
+
+        public int Next()
         {
-            uint scale = uint.MaxValue;
-            while (scale == uint.MaxValue)
+            var data = new byte[sizeof(int)];
+            rng.GetBytes(data);
+            return BitConverter.ToInt32(data, 0) & (int.MaxValue - 1);
+        }
+
+        public int Next(int maxValue)
+        {
+            return Next(0, maxValue);
+        }
+
+        public int Next(int minValue, int maxValue)
+        {
+            if (minValue > maxValue)
             {
-                // Get four random bytes.
-                byte[] four_bytes = new byte[4];
-                _rand.GetBytes(four_bytes);
-
-                // Convert that into an uint.
-                scale = BitConverter.ToUInt32(four_bytes, 0);
+                throw new ArgumentOutOfRangeException();
             }
+            return (int)Math.Floor((minValue + ((double)maxValue - minValue) * NextDouble()));
+        }
 
-            // Add min to the scaled difference between max and min.
-            return (int)(min + (max - min) *
-                (scale / (double)uint.MaxValue));
+        public double NextDouble()
+        {
+            var data = new byte[sizeof(uint)];
+            rng.GetBytes(data);
+            var randUint = BitConverter.ToUInt32(data, 0);
+            return randUint / (uint.MaxValue + 1.0);
+        }
+
+        public override void GetBytes(byte[] data)
+        {
+            rng.GetBytes(data);
+        }
+
+        public override void GetNonZeroBytes(byte[] data)
+        {
+            rng.GetNonZeroBytes(data);
         }
     }
 }

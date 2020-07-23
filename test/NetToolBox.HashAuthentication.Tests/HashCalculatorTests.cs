@@ -49,6 +49,19 @@ namespace NetToolBox.HashAuthentication.Tests
         }
 
         [Fact]
+        public void CalculateUriToHashNoParametersTest()
+        {
+            var fixture = new HashCalculatorTestFixture();
+            var uri = new Uri("http://localhost/RetrieveBlob");
+            var currentDateTime = fixture.TestDateTimeServiceProvider.CurrentDateTimeUTC;
+
+            var uriToHash = fixture.HashCalculator.CalculateUriToHash(uri, TimeSpan.FromHours(5));
+            var expectedUri = new Uri(uri.ToString() + $"?expirationTime={currentDateTime.AddHours(5):yyyyMMddHHmmss}&hashKeyName=key1");
+            uriToHash.Uri.Should().Be(expectedUri);
+
+        }
+
+        [Fact]
         public void CalculateHashedUriTest()
         {
             var fixture = new HashCalculatorTestFixture();
