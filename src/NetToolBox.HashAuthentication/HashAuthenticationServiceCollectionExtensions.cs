@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using NetToolBox.HashAuthentication;
+using NetToolBox.HashAuthentication.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace Microsoft.Extensions.DependencyInjection
             var optionsRegistered = services.Any(x => x.ServiceType.GenericTypeArguments.Any(x => x == typeof(List<HashKeyEntry>)));
             if (!optionsRegistered) throw new InvalidOperationException("You must register options for of type List<HashKeyEntry for hashkeyauthentication");
             services.AddDateTimeService();
-            services.AddSingleton<HashCalculator>();
+            services.AddSingleton<IHashCalculator, HashCalculator>();
             return services;
         }
 

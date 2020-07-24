@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetToolBox.HashAuthentication.Abstractions;
 using System;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -11,9 +12,9 @@ namespace NetToolBox.HashAuthentication.AuthenticationHandler
 {
     public sealed class HashCodeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
-        private readonly HashCalculator _hashCalculator;
+        private readonly IHashCalculator _hashCalculator;
 
-        public HashCodeAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, HashCalculator hashCalculator) : base(options, logger, encoder, clock)
+        public HashCodeAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IHashCalculator hashCalculator) : base(options, logger, encoder, clock)
         {
             _hashCalculator = hashCalculator;
         }

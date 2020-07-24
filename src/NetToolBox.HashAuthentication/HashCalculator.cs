@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using NetToolBox.DateTimeService;
+using NetToolBox.HashAuthentication.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -9,7 +10,7 @@ using System.Text;
 
 namespace NetToolBox.HashAuthentication
 {
-    public sealed class HashCalculator
+    public sealed class HashCalculator : IHashCalculator
     {
         private readonly IDateTimeService _dateTimeService;
         private readonly IOptionsMonitor<List<HashKeyEntry>> _haskKeyOptionsMonitor;
