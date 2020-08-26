@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NetToolBox.DateTimeService;
 using NetToolBox.HashAuthentication.Abstractions;
 using System;
@@ -14,13 +15,13 @@ namespace NetToolBox.HashAuthentication
     {
         private readonly IDateTimeService _dateTimeService;
         private readonly IOptionsMonitor<List<HashKeyEntry>> _haskKeyOptionsMonitor;
+        private readonly ILogger<HashCalculator> _logger;
 
-
-        public HashCalculator(IDateTimeService dateTimeService, IOptionsMonitor<List<HashKeyEntry>> haskKeyOptionsMonitor)
+        public HashCalculator(IDateTimeService dateTimeService, IOptionsMonitor<List<HashKeyEntry>> haskKeyOptionsMonitor, ILogger<HashCalculator> logger)
         {
             _dateTimeService = dateTimeService;
             _haskKeyOptionsMonitor = haskKeyOptionsMonitor;
-
+            _logger = logger;
         }
 
         public bool IsValidUri(Uri uri)
@@ -43,14 +44,19 @@ namespace NetToolBox.HashAuthentication
 
             var currentTime = _dateTimeService.CurrentDateTimeUTC;
             var expirationTimeIndex = uriWithoutHashCode.IndexOf("expirationTime");
-            if (expirationTimeIndex <= 0) return false;
+            if (expirationTimeIndex <= 0)
+            {
+                return false;
+            }
             var expirationTime = DateTime.ParseExact(uriWithoutHashCode.Substring(expirationTimeIndex + 15, 14), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-            if (expirationTime < currentTime) return false;
+            if (expirationTime < currentTime)
+            {
+                _logger.LogInformation("Url passed to HashCode has expired CurrentTime {CurrentTime} ExpirationTime {ExpirationTime}", currentTime, expirationTime);
+                return false;
+            }
 
             return hashCodeSent == hashCodeExpected;
         }
-
-
 
         public Uri CalculateUriWithHash(Uri uri, TimeSpan expiration)
         {
@@ -67,6 +73,7 @@ namespace NetToolBox.HashAuthentication
             var encoded = Convert.ToBase64String(hash);
             return encoded;
         }
+
         internal (Uri Uri, HashKeyEntry HashKeyEntry) CalculateUriToHash(Uri uri, TimeSpan expiration)
         {
             var activeItems = _haskKeyOptionsMonitor.CurrentValue.Where(x => x.IsActive).ToList();
@@ -76,7 +83,5 @@ namespace NetToolBox.HashAuthentication
             var retval = (new Uri(uriString + $"{(uriString.Contains('?') ? '&' : '?')}expirationTime={_dateTimeService.CurrentDateTimeUTC.Add(expiration):yyyyMMddHHmmss}&hashKeyName={keyToUse.KeyName}"), keyToUse);
             return retval;
         }
-
     }
-
 }

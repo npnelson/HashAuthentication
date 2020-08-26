@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using NetToolBox.DateTimeService.TestHelper;
@@ -25,7 +26,6 @@ namespace NetToolBox.HashAuthentication.Tests
         [InlineData("http://localhost/RetrieveBlob?containerName=testcontainer&path=testpath&expirationTime=20200722173059&hashKeyName=key1&hashCode=PNd18qkQSAmWp5ZVpAnH3tUxSZY=", true)]
         [InlineData("http://localhost/RetrieveBlob?containerName=testcontainer&path=testpath&expirationTime=20300722173059&hashKeyName=key1&hashCode=PNd18qkQSAmWp5ZVpAnH3tUxSZY=", false)] //changed uri
         [InlineData("http://localhost/RetrieveBlob?containerName=testcontainer&path=testpath&expirationTime=20300722173059&hashKeyName=key1", false)] //no hashCode, should just return false, not throw
-
         public void ValidateUriTest(string uriString, bool isValid)
         {
             var fixture = new HashCalculatorTestFixture();
@@ -35,6 +35,7 @@ namespace NetToolBox.HashAuthentication.Tests
             var valid = fixture.HashCalculator.IsValidUri(uriToValidate);
             valid.Should().Be(isValid);
         }
+
         [Fact]
         public void CalculateUriToHashTest()
         {
@@ -45,7 +46,6 @@ namespace NetToolBox.HashAuthentication.Tests
             var uriToHash = fixture.HashCalculator.CalculateUriToHash(uri, TimeSpan.FromHours(5));
             var expectedUri = new Uri(uri.ToString() + $"&expirationTime={currentDateTime.AddHours(5):yyyyMMddHHmmss}&hashKeyName=key1");
             uriToHash.Uri.Should().Be(expectedUri);
-
         }
 
         [Fact]
@@ -58,7 +58,6 @@ namespace NetToolBox.HashAuthentication.Tests
             var uriToHash = fixture.HashCalculator.CalculateUriToHash(uri, TimeSpan.FromHours(5));
             var expectedUri = new Uri(uri.ToString() + $"?expirationTime={currentDateTime.AddHours(5):yyyyMMddHHmmss}&hashKeyName=key1");
             uriToHash.Uri.Should().Be(expectedUri);
-
         }
 
         [Fact]
@@ -72,7 +71,6 @@ namespace NetToolBox.HashAuthentication.Tests
             var uriWithHash = fixture.HashCalculator.CalculateUriWithHash(uri, TimeSpan.FromHours(5));
             var expectedUri = new Uri(uri.ToString() + "&expirationTime=20200722173059&hashKeyName=key1&hashCode=PNd18qkQSAmWp5ZVpAnH3tUxSZY=");
             uriWithHash.Should().Be(expectedUri);
-
         }
     }
 
@@ -82,10 +80,11 @@ namespace NetToolBox.HashAuthentication.Tests
         public readonly TestDateTimeServiceProvider TestDateTimeServiceProvider = new TestDateTimeServiceProvider();
         public readonly List<HashKeyEntry> TestHashKeyEntries = new List<HashKeyEntry> { new HashKeyEntry { IsActive = true, KeyName = "key1", KeyValue = "password1" }, new HashKeyEntry { IsActive = false, KeyName = "key2", KeyValue = "password2" } };
         private readonly Mock<IOptionsMonitor<List<HashKeyEntry>>> MockOptions = new Mock<IOptionsMonitor<List<HashKeyEntry>>>();
+
         public HashCalculatorTestFixture()
         {
             MockOptions.SetupGet(x => x.CurrentValue).Returns(TestHashKeyEntries);
-            HashCalculator = new HashCalculator(TestDateTimeServiceProvider, MockOptions.Object);
+            HashCalculator = new HashCalculator(TestDateTimeServiceProvider, MockOptions.Object, new NullLogger<HashCalculator>());
         }
     }
 }

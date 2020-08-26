@@ -22,6 +22,7 @@ namespace NetToolBox.HashAuthentication.AuthenticationHandler
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             var uri = new Uri(Request.GetDisplayUrl());
+            Logger.LogInformation("Attempting to Validate {Url}", uri);
             if (_hashCalculator.IsValidUri(uri))
             {
                 var identity = new ClaimsIdentity(Scheme.Name);
@@ -33,7 +34,6 @@ namespace NetToolBox.HashAuthentication.AuthenticationHandler
             {
                 return Task.FromResult(AuthenticateResult.Fail("Invalid URL or HashCode"));
             }
-
         }
     }
 }
